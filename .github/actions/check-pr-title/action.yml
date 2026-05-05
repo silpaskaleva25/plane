@@ -1,0 +1,86 @@
+name: Check PR Title
+
+description: 'This action checks if the pull request title follows the conventional commit format.'
+
+inputs:
+  pr_title:
+    description: 'The pull request title to validate'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate Inputs
+      shell: bash
+      run: |
+        if [[ -z "${{ inputs.pr_title }}" ]]; then
+          error_message="Error: PR title is empty"
+          echo "$error_message" 
+          echo "$error_message" >> $GITHUB_STEP_SUMMARY
+          
+          exit 1
+        fi
+
+    - name: Validate PR Title Format
+      shell: bash
+      run: |
+        # Sanitize PR title to prevent injection
+        PR_TITLE=$(echo "${{ inputs.pr_title }}" | tr -d '\n\r' | head -c 200)
+
+        echo ""
+        echo "Validating PR title: '$PR_TITLE'"
+        echo ""
+
+        # The types allowed in this project, based on conventional commits
+        ALLOWED_TYPES="feat|fix|docs|test|ci|chore"
+
+        # Conventional commit pattern: type(optional-scope): description
+        # - type: one of the allowed types. required.
+        # - scope: the Jira work item number. required.
+        # - description: can start with upper or lowercase letter. required.
+        PATTERN="^($ALLOWED_TYPES)(\([0-9]+\)): [a-zA-Z].*$"
+
+        is_valid="false"
+        failure_reason=""
+
+        # Check specific failure reasons
+        if [[ ! $PR_TITLE =~ ^($ALLOWED_TYPES) ]]; then
+          failure_reason="Invalid or missing type"
+          echo "❌ ${failure_reason}"          
+          echo ""
+        elif [[ ! $PR_TITLE =~ \([0-9]+\) ]]; then
+          failure_reason="Missing or invalid Jira work item number"
+          echo "❌ ${failure_reason}"
+          echo ""
+        elif [[ ! $PR_TITLE =~ :[[:space:]][a-zA-Z] ]]; then
+          failure_reason="Description missing or doesn't start with a letter"
+          echo "❌ ${failure_reason}"
+          echo ""
+        else
+          is_valid="true"
+        fi
+
+        echo "is valid: ${is_valid}"
+        echo "failure_reason=${failure_reason}" >> $GITHUB_OUTPUT
+
+        if [ "${is_valid}" == "false" ]; then
+          {
+            echo "❌ PR title does NOT follow conventional commit format"
+            echo ""
+            echo "**PR Title**: $PR_TITLE"
+            echo "**Failure reason**: ${failure_reason}"
+            echo ""          
+            echo "**Expected pattern**: type(Jira work item number): description"
+            echo "**Allowed types**: feat, fix, docs, test, ci, chore"
+            echo ""   
+            echo "**Examples**:"
+            echo "  ✅ feat(12): add user authentication"
+            echo "  ✅ fix(34): Resolve login timeout issue"
+            echo "  ✅ docs(56): Update installation guide"
+            echo "  ❌ Add user authentication (missing type)"
+            echo "  ❌ feat: Add user authentication (missing Jira work item number)"
+            echo "  ❌ feat(78): 123 invalid description (description must start with a letter)"
+          } >> $GITHUB_STEP_SUMMARY
+
+          exit 1
+        fi

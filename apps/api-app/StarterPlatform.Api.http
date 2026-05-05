@@ -1,0 +1,27 @@
+﻿@StarterApp.Api_HostAddress = http://localhost:5187
+
+GET {{StarterApp.Api_HostAddress}}/greeting/
+Accept: application/json
+
+###
+
+# Test services endpoints with the NuGet package functionality
+
+# Test greeting with name in path
+GET {{StarterApp.Api_HostAddress}}/api/services/hello/Alice
+Accept: application/json
+
+###
+
+# Test greeting with special characters
+GET {{StarterApp.Api_HostAddress}}/api/services/hello/Mary%20Jane
+Accept: application/json
+
+###
+
+# Test greeting with simple name
+GET {{StarterApp.Api_HostAddress}}/api/services/hello/John
+Accept: application/json
+
+###
+

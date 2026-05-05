@@ -1,0 +1,19 @@
+{
+  "name": "api-services-package",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/api/services",
+  "tags": ["nx-dotnet"],
+  "targets": {
+    "pack": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/dist/packages"],
+      "options": {
+        "cwd": "packages/api/services-package",
+        "command": "dotnet pack Starter.Platform.Api.Services.csproj --configuration Release --output ../../../../dist/packages"
+      },
+      "dependsOn": ["build"]
+    }
+  }
+}
+

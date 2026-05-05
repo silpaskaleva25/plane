@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SonarQubeAnalysisProperties xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns="http://www.sonarsource.com/msbuild/integration/2015/1">
+  <Property Name="sonar.projectName">Starter Platform</Property>
+  <Property Name="sonar.host.url">http://localhost:9000</Property>
+  <Property Name="sonar.sourceEncoding">UTF-8</Property>
+  <Property Name="sonar.scm.provider">git</Property>
+
+  <!-- Source files -->
+  <Property Name="sonar.exclusions">
+    **/*.spec.ts,**/*.test.ts,**/node_modules/**,**/dist/**,**/tmp/**,**/*.dockerignore</Property>
+
+  <!-- Test Files -->
+  <Property Name="sonar.test.exclusions">**/*.spec.ts,**/*.test.ts</Property>
+
+  <!-- Code Coverage Exclusions - Excludes everything which prevents any code coverage being
+  reported. This improves performance
+  and ensures Quality Gates do not fail due to missing coverage data. However, no coverage data will
+  be reported for any files. -->
+  <Property Name="sonar.coverage.exclusions">**/*</Property>
+
+  <!-- Issue Exclusions - Ignore specific rules on specific files -->
+  <Property Name="sonar.issue.ignore.multicriteria">apiAppDockerfileExclusion</Property>
+  <Property Name="sonar.issue.ignore.multicriteria.apiAppDockerfileExclusion.ruleKey">docker:S6470</Property>
+  <Property Name="sonar.issue.ignore.multicriteria.apiAppDockerfileExclusion.resourceKey">
+    apps/api-app/Dockerfile</Property>
+
+</SonarQubeAnalysisProperties>

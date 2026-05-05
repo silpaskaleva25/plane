@@ -1,0 +1,227 @@
+name: Reusable Checks Workflow
+
+on:
+  workflow_call:
+    inputs:
+      pr_title:
+        description: 'Pull request title'
+        required: false
+        type: string
+      run_pr_title_check:
+        description: 'Whether to run the PR title check'
+        required: false
+        type: boolean
+        default: true
+      run_linting:
+        description: 'Whether to run linting'
+        required: false
+        type: boolean
+        default: true
+      run_formatting:
+        description: 'Whether to run formatting checks'
+        required: false
+        type: boolean
+        default: true
+      run_unit_tests:
+        description: 'Whether to run tests'
+        required: false
+        type: boolean
+        default: true
+      run_compliance_scans:
+        description: 'Whether to run security scanning'
+        required: false
+        type: boolean
+        default: true
+
+    outputs:
+      pr_title_check_result:
+        description: 'Result of the PR title check'
+        value: ${{ jobs.pr_title_check.result }}
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  pr_title_check:
+    name: PR Title Check
+    runs-on: ubuntu-latest
+    if: ${{ inputs.run_pr_title_check && inputs.pr_title }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Check PR Title Format
+        id: check-pr-title
+        uses: ./.github/actions/check-pr-title
+        with:
+          pr_title: '${{ inputs.pr_title }}'
+
+  security-check:
+    name: Shai Hulud Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: gensecaihq/Shai-Hulud-2.0-Detector@1b45cf57f2a6af9e7e7d52d9a448e09f94621e56
+        with:
+          fail-on-critical: true
+
+  compliance-scans:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    needs: [security-check]
+    if: inputs.run_compliance_scans
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        uses: ./.github/actions/install-deps-from-cache
+        with:
+          node_version: '${{ vars.NODE_VERSION }}'
+          pnpm_version: '${{ vars.PNPM_VERSION }}'
+
+      - name: Run pnpm audit
+        run: pnpm audit
+        continue-on-error: false
+
+  code-quality-checks:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    needs: [compliance-scans]
+    if: inputs.run_linting || inputs.run_formatting || inputs.run_unit_tests
+    outputs:
+      affected_projects: ${{ steps.affected-projects.outputs.affected_projects }}
+      lint_result: ${{ steps.lint.outcome }}
+      format_result: ${{ steps.format.outcome }}
+      unit_tests_result: ${{ steps.unit-tests.outcome }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        id: set-shas
+        uses: nrwl/nx-set-shas@v4
+
+      - name: Install dependencies
+        uses: ./.github/actions/install-deps-from-cache
+        with:
+          node_version: '${{ vars.NODE_VERSION }}'
+          pnpm_version: '${{ vars.PNPM_VERSION }}'
+
+      - name: Affected projects
+        id: affected-projects
+        run: |
+          affected_projects_raw=$(pnpm nx show projects --affected --json=false)
+
+          # join newlines into a comma list          
+          affected_projects=$(echo "$affected_projects_raw" | tr '\n' ' ' | sed 's/,$//')
+          echo "affected_projects=${affected_projects}" >> $GITHUB_OUTPUT
+          echo "Affected projects: ${affected_projects}"
+
+      - name: Lint
+        id: lint
+        if: inputs.run_linting
+        run: pnpm nx affected --target=lint
+
+      - name: Formatting
+        id: format
+        if: inputs.run_formatting
+        run: pnpm nx format:check --base=${{ steps.set-shas.outputs.base }} --head=${{ steps.set-shas.outputs.head }}
+
+      - name: Unit Tests
+        id: unit-tests
+        if: inputs.run_unit_tests
+        run: pnpm nx affected --target=test
+
+  summary:
+    name: Checks Results
+    runs-on: ubuntu-latest
+    needs:
+      [pr_title_check, security-check, compliance-scans, code-quality-checks]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# 🔍 Checks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+
+          if [ "${{ inputs.run_linting }}" == "true" ] || [ "${{ inputs.run_formatting }}" == "true" ] || [ "${{ inputs.run_unit_tests }}" == "true" ]; then
+            echo "**Affected Projects:** ${{ needs.code-quality-checks.outputs.affected_projects }}  " >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ inputs.run_pr_title_check }}" == "true" ]; then
+            if [ "${{ needs.pr_title_check.result }}" == "success" ]; then
+              echo "✅ **PR Title Check:** Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **PR Title Check:** Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **PR Title Check:** Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.security-check.result }}" == "success" ]; then
+            echo "✅ **Security Check:** Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Security Check:** Failed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ inputs.run_compliance_scans }}" == "true" ]; then
+            if [ "${{ needs.compliance-scans.result }}" == "success" ]; then
+              echo "✅ **Compliance Scans:** Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Compliance Scans:** Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "⏭️ **Compliance Scans:** Skipped" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ inputs.run_linting }}" == "true" ] || [ "${{ inputs.run_formatting }}" == "true" ] || [ "${{ inputs.run_unit_tests }}" == "true" ]; then
+            if [ "${{ needs.code-quality-checks.result }}" == "success" ]; then
+              echo "✅ **Code Quality:** Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "❌ **Code Quality:** Failed" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            if [ "${{ inputs.run_linting }}" == "true" ]; then
+              if [ "${{ needs.code-quality-checks.outputs.lint_result }}" == "success" ]; then
+                echo "- Linting: Passed" >> $GITHUB_STEP_SUMMARY
+              elif [ "${{ needs.code-quality-checks.outputs.lint_result }}" == "failure" ]; then
+                echo "- Linting: Failed" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- Linting: Skipped" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+
+            if [ "${{ inputs.run_formatting }}" == "true" ]; then
+              if [ "${{ needs.code-quality-checks.outputs.format_result }}" == "success" ]; then
+                echo "- Formatting: Passed" >> $GITHUB_STEP_SUMMARY
+              elif [ "${{ needs.code-quality-checks.outputs.format_result }}" == "failure" ]; then
+                echo "- Formatting: Failed" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- Formatting: Skipped" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+
+            if [ "${{ inputs.run_unit_tests }}" == "true" ]; then
+              if [ "${{ needs.code-quality-checks.outputs.unit_tests_result }}" == "success" ]; then
+                echo "- Unit Tests: Passed" >> $GITHUB_STEP_SUMMARY
+              elif [ "${{ needs.code-quality-checks.outputs.unit_tests_result }}" == "failure" ]; then
+                echo "- Unit Tests: Failed" >> $GITHUB_STEP_SUMMARY
+              else
+                echo "- Unit Tests: Skipped" >> $GITHUB_STEP_SUMMARY
+              fi
+            fi
+          else
+            echo "⏭️ **Code Quality:** Skipped" >> $GITHUB_STEP_SUMMARY
+          fi

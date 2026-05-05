@@ -1,0 +1,26 @@
+{
+  "name": "api-services-package-test",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/api/services-package-test",
+  "tags": ["nx-dotnet", "test"],
+  "targets": {
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/api/services-package-test",
+        "command": "dotnet test Starter.Platform.Api.Services.Test.csproj --configuration Debug --verbosity normal"
+      },
+      "dependsOn": ["^build"]
+    },
+    "test-coverage": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "packages/api/services-package-test",
+        "command": "dotnet test Starter.Platform.Api.Services.Test.csproj --configuration Debug --collect:\"XPlat Code Coverage\" --results-directory ../../../../coverage/packages/api/services-package-test"
+      },
+      "dependsOn": ["^build"]
+    }
+  }
+}
+

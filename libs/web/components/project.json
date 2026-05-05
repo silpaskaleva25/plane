@@ -1,0 +1,31 @@
+{
+  "name": "ui-components-lib",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/components/src",
+  "prefix": "csa",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{workspaceRoot}/dist/libs/web/components"],
+      "options": {
+        "outputPath": "dist/libs/web/components",
+        "tsConfig": "libs/web/components/tsconfig.lib.json",
+        "main": "libs/web/components/src/index.ts"
+      },
+      "dependsOn": ["ui-components-package:build"]
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/web/components"],
+      "options": {
+        "jestConfig": "libs/web/components/jest.config.ts",
+        "tsConfig": "libs/web/components/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

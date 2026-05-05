@@ -1,0 +1,141 @@
+{
+  "name": "api-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/api-app",
+  "tags": [],
+  "targets": {
+    "swagger": {
+      "executor": "@nx-dotnet/core:update-swagger",
+      "outputs": ["{workspaceRoot}/dist/apps/generated/api-swagger"],
+      "options": {
+        "output": "dist/apps/generated/api-swagger/swagger.json",
+        "startupAssembly": "dist/apps/api-app/net8.0/StarterApp.Api.dll",
+        "swaggerDoc": "v1"
+      },
+      "configurations": {
+        "development": {
+          "env": {
+            "ASPNETCORE_ENVIRONMENT": "Development",
+            "GENERATE_SWAGGER": "true"
+          }
+        },
+        "generate": {
+          "env": {
+            "GENERATE_SWAGGER": "true"
+          }
+        },
+        "production": {
+          "env": {
+            "ASPNETCORE_ENVIRONMENT": "Production",
+            "GENERATE_SWAGGER": "false"
+          }
+        }
+      },
+      "defaultConfiguration": "production",
+      "dependsOn": ["build"]
+    },
+    "publish": {
+      "executor": "@nx-dotnet/core:publish",
+      "metadata": {
+        "description": "Publish .NET app to dist/publish for containerization"
+      },
+      "options": {
+        "configuration": "Release",
+        "output": "dist/publish",
+        "selfContained": true,
+        "runtime": "linux-x64",
+        "extraParameters": "/p:PublishReadyToRun=true"
+      },
+      "dependsOn": ["build"]
+    },
+    "copy:dockerfile": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Copy Dockerfile to dist/publish for Docker build context. Required for container image builds."
+      },
+      "options": {
+        "command": "node scripts/copy-file.js apps/api-app/Dockerfile dist/publish/Dockerfile",
+        "cwd": "{workspaceRoot}"
+      },
+      "dependsOn": ["publish"]
+    },
+    "build:image": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Build container image from dist/publish artifacts"
+      },
+      "options": {
+        "command": "podman build -t starter-api:latest dist/publish",
+        "cwd": "{workspaceRoot}"
+      },
+      "dependsOn": ["copy:dockerfile"]
+    },
+    "tag:image": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Tag the built Docker image for ECR. Auto-detects AWS credentials and constructs repository name from ENV_PREFIX-PROJECT_NAME-ecr."
+      },
+      "options": {
+        "command": "node scripts/tag-image.js",
+        "cwd": "{workspaceRoot}"
+      },
+      "dependsOn": ["build:image"]
+    },
+    "push:image": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Ensure ECR repository exists, login to ECR, and push the Docker image. Auto-detects AWS credentials and constructs repository name."
+      },
+      "options": {
+        "command": "node scripts/push-image.js",
+        "cwd": "{workspaceRoot}"
+      },
+      "dependsOn": ["tag:image"]
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Run API with hot reload for active development (fast iteration)"
+      },
+      "options": {
+        "command": "podman run --rm --name starter-api -p 5000:5000 -v .:/app -w /app -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_URLS=http://+:5000 -e GENERATE_SWAGGER=true -e DOTNET_USE_POLLING_FILE_WATCHER=1 mcr.microsoft.com/dotnet/sdk:8.0 dotnet watch run --project apps/api-app/StarterApp.Api.csproj --urls http://0.0.0.0:5000",
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "serve:image": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Build and run containerized API for pre-CI/CD validation"
+      },
+      "options": {
+        "command": "podman run --rm --name starter-api -p 5000:5000 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_URLS=http://+:5000 -e GENERATE_SWAGGER=true starter-api:latest",
+        "cwd": "{workspaceRoot}"
+      },
+      "dependsOn": ["build:image"]
+    },
+    "run": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Build and run production container (CI/CD simulation)"
+      },
+      "options": {
+        "command": "podman run -d --name starter-api -p 8080:8080 starter-api:latest",
+        "cwd": "{workspaceRoot}"
+      },
+      "dependsOn": ["build:image"]
+    },
+    "stop": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Stop and remove running API container"
+      },
+      "options": {
+        "command": "podman rm -f starter-api",
+        "cwd": "{workspaceRoot}"
+      }
+    }
+  }
+}
+
+

@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- Use NuGet package when available (local development with package built), otherwise use
+  project reference -->
+  <PropertyGroup Condition="Exists('../../dist/packages/Starter.Platform.Api.Services.1.0.0.nupkg')">
+    <RestoreSources>$(RestoreSources);../../dist/packages;https://api.nuget.org/v3/index.json</RestoreSources>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('../../dist/packages/Starter.Platform.Api.Services.1.0.0.nupkg')">
+    <PackageReference Include="Starter.Platform.Api.Services" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="!Exists('../../dist/packages/Starter.Platform.Api.Services.1.0.0.nupkg')">
+    <ProjectReference Include="../../packages/api/services-package/Starter.Platform.Api.Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.21" />
+    <PackageReference Include="Npgsql" Version="8.0.4" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.0.0" />
+    <ProjectReference Include="..\..\libs\api\services-lib\StarterApp.Api.Services.csproj" />
+  </ItemGroup>
+
+</Project>

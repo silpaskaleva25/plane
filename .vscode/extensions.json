@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "firsttris.vscode-jest-runner",
+    "aquasecurityofficial.trivy-vulnerability-scanner",
+    "sonarsource.sonarlint-vscode",
+    "ms-dotnettools.csharp",
+    "ms-dotnettools.csdevkit",
+    "redhat.vscode-xml",
+    "nrwl.angular-console"
+  ]
+}

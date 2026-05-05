@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/packages/infra",
+    "declaration": true,
+    "declarationMap": true,
+    "inlineSources": false,
+    "types": ["node"]
+  },
+  "exclude": ["jest.config.ts", "src/**/*.spec.ts"],
+  "include": ["src/**/*.ts"]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@starter/infra-components",
+  "version": "0.0.0",
+  "description": "Starter Platform Infrastructure CDK Constructs",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "keywords": [
+    "aws",
+    "cdk",
+    "infrastructure",
+    "constructs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example-org/starter-platform.git",
+    "directory": "packages/infra"
+  }
+}
+

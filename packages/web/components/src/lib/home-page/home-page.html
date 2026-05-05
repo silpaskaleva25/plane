@@ -1,0 +1,18 @@
+﻿<div class="hero-banner"
+  [style.background-color]="heroBannerBackgroundColor() || '#005eb8'"
+  [style.color]="heroBannerTextColor() || '#ffffff'"
+  [attr.data-testid]="heroBannerTestId() || null"
+>
+  <div class="hero-banner__content">
+    <h1>{{ heroBannerHeading() }}</h1>
+    <ng-content select="[hero-banner-content]"></ng-content>
+    <div class="hero-banner__actions">
+      <ng-content select="[hero-banner-actions]"></ng-content>
+    </div>
+  </div>
+</div>
+
+<main>
+  <ng-content select="[content]"></ng-content>
+</main>
+

@@ -1,0 +1,82 @@
+name: Build Workflow
+description: 'Workflow to build and package the application'
+
+on:
+  workflow_call:
+    inputs:
+      upload_build_artifacts:
+        description: 'Whether to upload build artifacts'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      affected_projects: ${{ steps.affected-projects.outputs.affected_projects }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Derive appropriate SHAs for base and head for `nx affected` commands
+        id: set-shas
+        uses: nrwl/nx-set-shas@v4
+
+      - name: Install dependencies
+        uses: ./.github/actions/install-deps-from-cache
+        with:
+          node_version: '${{ vars.NODE_VERSION }}'
+          pnpm_version: '${{ vars.PNPM_VERSION }}'
+
+      - name: Affected projects
+        id: affected-projects
+        run: |
+          affected_projects_raw=$(pnpm nx show projects --affected --json=false)
+
+          # join newlines into a comma list          
+          affected_projects=$(echo "$affected_projects_raw" | tr '\n' ' ' | sed 's/,$//')
+          echo "Affected projects: ${affected_projects}"
+          echo "affected_projects=${affected_projects}" >> $GITHUB_OUTPUT
+
+      - name: Build
+        id: build
+        run: pnpm nx affected --target=build
+
+      - if: inputs.upload_build_artifacts
+        name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-dist
+          path: |
+            dist
+            !dist/*/*-test
+            !dist/intermediates
+          if-no-files-found: warn
+
+  summary:
+    name: Build Results
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# 🔧 Build" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "**Affected Projects:** ${{ needs.build.outputs.affected_projects }}  " >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ ${{ needs.build.result }} == 'success' ]; then
+            echo "✅ Build completed successfully." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Build failed. Please review the details above." >> $GITHUB_STEP_SUMMARY
+          fi

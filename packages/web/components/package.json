@@ -1,0 +1,10 @@
+{
+  "name": "@starter/ui-components",
+  "version": "0.0.1",
+  "sideEffects": false,
+  "peerDependencies": {
+    "@angular/core": "20.3.16",
+    "@abgov/angular-components": "4.9.0"
+  }
+}
+

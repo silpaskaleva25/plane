@@ -1,0 +1,63 @@
+name: Main Workflow
+description: 'Workflow to run checks, builds, deploys and other actions on merges to main'
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  configuration:
+    name: Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show configuration
+        run: |
+          echo "- **Node.js Version:** ${{ vars.NODE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **pnpm Version:** ${{ vars.PNPM_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+  checks:
+    name: Run Checks
+    uses: ./.github/workflows/checks.yml
+    with:
+      run_pr_title_check: false # PR title check not needed on push to main
+      run_linting: true
+      run_formatting: true
+      run_unit_tests: true
+      run_compliance_scans: true # partially implemented
+
+  build:
+    name: Build
+    needs: [checks]
+    if: needs.checks.result == 'success'
+    uses: ./.github/workflows/build.yml
+    with:
+      upload_build_artifacts: true
+
+  summary:
+    name: Main Workflow Results
+    needs: [checks, build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Summary
+        run: |
+          {
+          if [ "${{ needs.checks.result }}" == "success" ]; then
+            echo "✅ All checks passed successfully."
+          else
+            echo "❌ Some checks failed. Please review the details above."
+          fi
+          } >> $GITHUB_STEP_SUMMARY
+
+          {
+            if [ "${{ needs.build.result }}" == "success" ]; then
+              echo "✅ Build completed successfully."
+            else
+              echo "❌ Build failed. Please review the details above."
+            fi
+          } >> $GITHUB_STEP_SUMMARY

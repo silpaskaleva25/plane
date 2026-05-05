@@ -1,0 +1,47 @@
+{
+  "name": "infra-components-package",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/infra/src",
+  "projectType": "library",
+  "tags": ["scope:infra", "type:library", "publishable"],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{workspaceRoot}/dist/packages/infra"],
+      "options": {
+        "outputPath": "dist/packages/infra",
+        "tsConfig": "packages/infra/tsconfig.lib.json",
+        "main": "packages/infra/src/index.ts",
+        "rootDir": "packages/infra/src",
+        "generatePackageJson": true
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/packages/infra"],
+      "options": {
+        "jestConfig": "packages/infra/jest.config.ts",
+        "tsConfig": "packages/infra/tsconfig.spec.json"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "dist/packages/infra",
+        "command": "npm pack"
+      },
+      "dependsOn": ["build"]
+    },
+    "publish": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "dist/packages/infra",
+        "command": "npm publish --access public"
+      },
+      "dependsOn": ["build"]
+    }
+  }
+}

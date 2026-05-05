@@ -1,0 +1,14 @@
+﻿html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(
+    --org-font-family-sans,
+    'acumin-pro-semi-condensed',
+    Arial,
+    sans-serif
+  );
+  background: var(--org-color-greyscale-white, #ffffff);
+}
+

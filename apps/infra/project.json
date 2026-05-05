@@ -1,0 +1,87 @@
+{
+  "name": "infra-app",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/infra/src",
+  "projectType": "application",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/apps/infra",
+        "main": "apps/infra/src/main.ts",
+        "tsConfig": "apps/infra/tsconfig.app.json",
+        "platform": "node",
+        "format": ["cjs"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "apps/infra/jest.config.ts",
+        "passWithNoTests": true
+      }
+    },
+
+    "synth": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cdk synth",
+        "cwd": "{workspaceRoot}/apps/infra"
+      },
+      "dependsOn": ["build"]
+    },
+    "verify-image": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Verify that the 'latest' container image exists in ECR before deploying"
+      },
+      "options": {
+        "command": "node ../../scripts/verify-image.js",
+        "cwd": "{workspaceRoot}/apps/infra"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Deploy infrastructure with auto-detection: checks for 'latest' ECR image, sets desiredCount=1 if found (0 if not), deploys ALB v2 with VPC Link, API Gateway, and ECS Fargate"
+      },
+      "options": {
+        "command": "node ../../scripts/deploy.js",
+        "cwd": "{workspaceRoot}/apps/infra"
+      },
+      "dependsOn": ["build"]
+    },
+    "deploy:image": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Build and push container image, then deploy infrastructure with the new image"
+      },
+      "options": {
+        "commands": ["nx run api-app:push:image", "nx run infra-app:deploy"],
+        "parallel": false,
+        "cwd": "{workspaceRoot}"
+      }
+    },
+    "diff": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cdk diff",
+        "cwd": "{workspaceRoot}/apps/infra"
+      },
+      "dependsOn": ["build"]
+    },
+    "smoke-test": {
+      "executor": "nx:run-commands",
+      "metadata": {
+        "description": "Run 10 comprehensive post-deployment tests: ECS, ALB, API Gateway, VPC Link, CloudFormation status, and load test (20 requests to detect intermittent failures)"
+      },
+      "options": {
+        "command": "node ../../scripts/smoke-test.js",
+        "cwd": "{workspaceRoot}/apps/infra"
+      }
+    }
+  }
+}

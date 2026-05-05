@@ -1,0 +1,35 @@
+name: 'Install dependencies with caching'
+description: 'Install dependencies with caching'
+
+inputs:
+  node_version:
+    description: 'Node.js version to use'
+    type: string
+    required: true
+
+  pnpm_version:
+    description: 'pnpm version to use'
+    type: string
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+
+      with:
+        version: '${{ inputs.pnpm_version }}'
+        run_install: false
+
+    - name: Install Node.js
+      uses: actions/setup-node@v6
+      with:
+        node-version: '${{ inputs.node_version }}'
+        cache: 'pnpm'
+
+    - name: Install dependencies
+      shell: bash
+      # Use --frozen-lockfile to ensure reproducible installs and prevent lockfile changes
+      # Use --ignore-scripts to avoid running any lifecycle scripts during installation
+      run: pnpm install --frozen-lockfile --ignore-scripts
