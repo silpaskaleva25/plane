@@ -1,14 +1,9 @@
-﻿namespace StarterApp.Api.Services;
+﻿using StarterApp.Api.Services.Dtos;
 
-/// <summary>
-/// Interface for the greeting service.
-/// </summary>
+namespace StarterApp.Api.Services;
+
 public interface IGreetingService
 {
-  /// <summary>
-  /// Gets a greeting message.
-  /// </summary>
-  /// <returns>A greeting string.</returns>
-  string GetGreeting();
+  GreetingResponseDto GetGreeting();
 }
 

@@ -50,8 +50,7 @@ public static class WebApplicationExtensions
     app.MapGet("/greeting", (IGreetingService greetingService) =>
     {
       return Results.Ok(greetingService.GetGreeting());
-    })
-    .WithOpenApi();
+    });
 
     app.Properties[WebApplicationExtensionKeys.EndpointsMapped] = true;
 

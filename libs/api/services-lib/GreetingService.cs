@@ -1,14 +1,12 @@
-﻿namespace StarterApp.Api.Services;
+﻿using StarterApp.Api.Services.Dtos;
 
-/// <summary>
-/// Service that provides greeting messages.
-/// </summary>
+namespace StarterApp.Api.Services;
+
 public class GreetingService : IGreetingService
 {
-  /// <inheritdoc />
-  public string GetGreeting()
+  public GreetingResponseDto GetGreeting()
   {
-    return "Hello from Starter App!";
+    return new GreetingResponseDto("Hello from Starter App!");
   }
 }
 
